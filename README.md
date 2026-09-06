@@ -1,130 +1,125 @@
 # ai-chat —— AI 聊天项目
 
-命令行对话 + DeepSeek 网页服务 + 手机→Claude Code 桥，纯 Python 标准库，**零依赖、无需 pip 安装**。
+命令行对话 + DeepSeek 网页服务 + 手机→Claude Code 桥。**纯 Python 标准库，零依赖**（仅 `log_viewer.py` 需 PyQt5）。
 
-三个入口：
+## 目录结构
 
-| 文件 | 用途 | 运行位置 |
-|------|------|----------|
-| `chat.py` | 命令行多轮/单次对话 | 任意 |
-| `server.py` | DeepSeek 网页服务（8000 端口） | VM / Linux |
-| `claude_bridge.py` | 手机 → Claude Code 桥（8787 端口，SSE 流式） | Windows 本机 |
+```
+ai-chat/                     ← 源码目录（GitHub 管理，只放公共代码）
+├── chat.py                  命令行对话（多轮/单次）
+├── server.py                DeepSeek 网页服务（端口 8000）
+├── claude_bridge.py         手机→Claude Code 桥（端口 8787，SSE 流式）
+├── runtime_paths.py         运行时目录解析
+├── log_viewer.py            桌面聊天监控窗口（需 PyQt5）
+├── notify_hook.py           Claude Code hook（通知桥）
+├── serve_image.py           图片服务
+├── extract_pdf.py           PDF 抽取工具
+├── guide.html / emei.html   桥的静态页
+├── config.example.json      配置模板（空密钥，照填即可）
+├── test_*.py                测试脚本
+└── README.md
 
-## 快速开始
-
-```bash
-cd ai-chat
-# 运行时数据（含密钥的 config.json / 日志 / 聊天记录 / 图片）放独立目录，与源码分离：
-#   Windows: E:\rk3588\ai-chat-runtime\     Linux: ~/.ai-chat-runtime\
-# 可用环境变量 AI_CHAT_RUNTIME 覆盖该目录。
-cp config.example.json E:\rk3588\ai-chat-runtime\config.json
-# 编辑该 config.json，填入 api_key（见下）
-python3 chat.py
+~/.ai-chat-runtime/          ← 运行时目录（本地，不入库；可被 AI_CHAT_RUNTIME 覆盖）
+├── config.json              你的真实配置（含密钥，这里填）
+├── bridge.log               桥日志
+├── chat_log.jsonl / .xlsx   聊天记录
+└── images/                  聊天图片
 ```
 
-## API 配置方法
+## 环境要求
 
-`config.json` 是唯一的配置文件（**含密钥，放在独立运行时目录，不在源码目录、也不入库**）：
+- **Python 3.8+**（项目只用标准库，**无需 pip install 任何包**）
+- 可选：`log_viewer.py`（桌面监控）需 `pip install PyQt5`
+- 桥依赖本机装有 [Claude Code](https://claude.ai/code) 的 `claude` CLI
+
+## 快速开始（克隆 → 配置 → 运行）
+
+```bash
+git clone https://github.com/<你的账号>/ai-chat.git
+cd ai-chat
+
+# 1. 生成配置（复制模板到运行时目录）
+cp config.example.json ~/.ai-chat-runtime/config.json   # Windows 用 C:\Users\<你>\.ai-chat-runtime\config.json
+
+# 2. 编辑 config.json，填入 api_key（见下方「配置说明」）
+
+# 3. 运行
+python chat.py                 # 命令行对话
+# 或 python server.py          # 网页服务（8000）
+# 或 python claude_bridge.py   # Claude Code 桥（8787）
+```
+
+## 配置说明（`~/.ai-chat-runtime/config.json`）
 
 ```json
 {
-  "provider": "deepseek",
-  "base_url": "",
-  "model": "",
-  "api_key": "sk-你的key",
-  "bridge_token": "桥访问口令（claude_bridge 用）",
+  "provider": "deepseek",     // 服务商：deepseek / qwen / moonshot
+  "base_url": "",             // 留空用预设；也可填完整接口 URL 覆盖
+  "model": "",                // 留空用 provider 默认模型
+  "api_key": "sk-你的key",     // 【必填】服务商密钥
+  "bridge_token": "自定义口令", // 【桥必填】手机访问桥的口令（chat/server 用不到）
   "temperature": 0.7,
   "max_tokens": 2048,
   "stream": true
 }
 ```
 
-- **`provider`**：填下面任一个即可，`base_url`/`model` 留空会自动用预设：
-
-  | provider  | 服务商   | 默认模型        |
-  |-----------|----------|-----------------|
-  | deepseek  | DeepSeek | deepseek-chat   |
-  | qwen      | 通义千问 | qwen-plus       |
-  | moonshot  | Moonshot | moonshot-v1-8k  |
-
-- **`api_key`**：服务商密钥。`chat.py` / `server.py` 用。
-- **`bridge_token`**：桥的访问口令（手机访问、log_viewer、notify_hook 共用）。`claude_bridge.py` / `log_viewer.py` / `notify_hook.py` 都从它读取，读不到再回退环境变量 `BRIDGE_TOKEN`。
-
-也支持环境变量覆盖（优先级最高）：
-
-```bash
-export AI_API_KEY=你的key
-export AI_BASE_URL=https://api.deepseek.com/chat/completions   # 可选
-export AI_MODEL=deepseek-chat                                  # 可选
-python3 chat.py
-```
-
-## 命令行用法
-
-```bash
-python3 chat.py            # 交互式多轮对话
-python3 chat.py "你好"      # 单次提问，输出后退出
-python3 chat.py --help
-```
-
-交互模式命令：`/exit` 退出、`/clear` 清空上下文、`/help` 帮助。
-
-## 网页服务（DeepSeek）
-
-在 VM 上运行，局域网/手机访问：
-
-```bash
-python3 server.py          # 监听 0.0.0.0:8000
-# 浏览器打开 http://192.168.1.5:8000
-```
-
-## Claude Code 桥（手机找「我」）
-
-在 Windows 本机运行：
-
-```bash
-pythonw.exe claude_bridge.py     # 后台跑，日志写 bridge.log
-python claude_bridge.py          # 前台跑（调试用）
-```
-
-- 手机/局域网访问：`http://<本机IP>:8787`（本机 LAN IP 默认 192.168.1.2，DHCP 可能变）
-- 监控页：`http://127.0.0.1:8787/log`
-- **只能起一个实例**：Windows 的 SO_REUSEADDR 会让多实例同时监听 8787 导致连接串线，多实例先全停再起一个。
-- 公网防护已内置：口令错 5 次封 IP 10 分钟、每 IP 120 次/分钟限流、并发 claude 进程上限 2。
-
-重启：
-
-```bash
-netstat -ano | grep 8787 | grep -i listen   # 拿 PID
-taskkill //F //PID <pid>
-pythonw.exe claude_bridge.py
-```
-
-## 樱花内网穿透（Sakura Frp）
-
-把桥暴露到公网，手机在外网也能连：
-
-1. 注册 [Sakura Frp](https://www.natfrp.com/)，创建隧道：
-   - 类型选 **HTTP / HTTPS**，本地 IP `127.0.0.1`、本地端口 **8787**。
-2. 海外节点强制 HTTPS：隧道里开 **「自动 HTTPS」**，并**关闭「访问认证」**（桥已有 TOKEN，别开双层，否则 HTTP 501、HTTPS 握手失败）。
-3. 启动 frpc（Windows 服务：`C:\ProgramData\SakuraFrpService\`），拿到公网地址（形如 `https://frp-sea.com:34605`）。
-4. 手机打开公网地址 —— 自签证书，首次访问点「高级 → 继续前往」。
-
-> 旧花生壳方案 `http://myopenaicode.top` 会断开，已弃用。
-
-## 运行时目录（源码与本地数据分离）
-
-运行时产生的数据全部写到独立目录（`runtime_paths.py` 里解析），**与 git 源码目录物理分离**：
-
-| 目录 | 位置 | 内容 |
+| 字段 | 必填 | 说明 |
 |------|------|------|
-| 源码（GitHub 管理） | `ai-chat/` | 只含代码、README、config.example.json |
-| 运行时数据（本地） | Windows `E:\rk3588\ai-chat-runtime\` / Linux `~/.ai-chat-runtime/` | config.json、bridge.log、chat_log.*、images/ |
+| `provider` | 是 | 服务商，预设见下表 |
+| `api_key` | 是 | API 密钥（DeepSeek 等平台申请） |
+| `bridge_token` | 仅桥 | 手机访问桥的访问口令，随意设个强随机字符串 |
+| `base_url` / `model` | 否 | 留空自动用预设 |
+| `temperature` / `max_tokens` / `stream` | 否 | 生成参数 |
 
-- 用环境变量 `AI_CHAT_RUNTIME` 可自定义运行时目录。
+服务商预设：
+
+| provider  | 服务商   | 默认模型        |
+|-----------|----------|-----------------|
+| deepseek  | DeepSeek | deepseek-chat   |
+| qwen      | 通义千问 | qwen-plus       |
+| moonshot  | Moonshot | moonshot-v1-8k  |
+
+也支持环境变量覆盖（优先级最高）：`AI_API_KEY` / `AI_BASE_URL` / `AI_MODEL` / `AI_CHAT_RUNTIME`（自定义运行时目录）/ `BRIDGE_TOKEN`。
+
+## 端口说明
+
+| 端口 | 组件 | 用途 |
+|------|------|------|
+| 8000 | `server.py` | DeepSeek 网页服务 |
+| 8787 | `claude_bridge.py` | 手机→Claude Code 桥 |
+
+## 本地 IP 说明（手机访问用）
+
+桥/网页服务都监听 `0.0.0.0`，手机用**电脑的局域网 IP** 访问：
+
+- 查本机 IP：Windows 里 `ipconfig` 看 IPv4（例如 `192.168.1.2`），Linux 里 `ip addr`。
+- 手机与电脑连**同一 WiFi**，浏览器打开 `http://<本机IP>:8787`（桥）或 `http://<本机IP>:8000`（网页）。
+- 注意：DHCP 分配的 IP **可能变**，连不上先重新 `ipconfig` 确认。
+
+## 各组件用法
+
+```bash
+python chat.py              # 交互式多轮对话
+python chat.py "你好"        # 单次提问
+python chat.py --help
+# 交互命令：/exit 退出、/clear 清空、/help 帮助
+
+python server.py            # 网页服务，浏览器 http://<本机IP>:8000
+
+python claude_bridge.py     # 桥（前台，调试用）
+pythonw claude_bridge.py    # 桥（Windows 后台，日志写运行时目录 bridge.log）
+```
+
+## 樱花内网穿透（Sakura Frp，手机外网访问）
+
+1. 注册 [Sakura Frp](https://www.natfrp.com/)，创建隧道：类型 **HTTP/HTTPS**，本地 `127.0.0.1:8787`。
+2. 海外节点强制 HTTPS：开 **「自动 HTTPS」**、关 **「访问认证」**（桥已有 bridge_token，别开双层）。
+3. 启动 frpc 拿到公网地址（如 `https://frp-sea.com:34605`）。
+4. 手机打开该地址，自签证书首次点「高级 → 继续前往」。
 
 ## 安全说明
 
-- `config.json`（api_key + bridge_token）**放在独立运行时目录，不进源码目录、不提交**。
-- 源码里**不含任何明文密钥**，全部从运行时目录的 `config.json` 读取。
-- 提交前请用 `git grep -n "sk-" HEAD` 自查。
+- **`config.json`（含 api_key / bridge_token）放在运行时目录，不进源码目录、不上传 GitHub。**
+- 源码里**不含任何明文密钥**，全部从运行时目录的 config.json 读取。
+- 提交前自查：`git grep -n "sk-" HEAD`。
