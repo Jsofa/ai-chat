@@ -111,6 +111,25 @@ python claude_bridge.py     # 桥（前台，调试用）
 pythonw claude_bridge.py    # 桥（Windows 后台，日志写运行时目录 bridge.log）
 ```
 
+## 桥的模型依赖（Claude Code + cc-switch）
+
+桥本身只调 `claude -p`（Claude Code CLI），模型从哪来由 Claude Code 的配置决定。本机当前链路：
+
+    手机 → claude_bridge.py(8787) → claude -p(Claude Code) → cc-switch 本地代理(127.0.0.1:15721) → DeepSeek
+
+- **Claude Code**：干活主体（跑工具、执行命令、多轮对话）。
+- **cc-switch**（CC Switch）：供应商切换器 + 本地翻译代理，把 Claude Code 的 Anthropic 格式请求翻成 OpenAI 格式发给 DeepSeek，并做模型名映射（haiku→deepseek-v4-flash、sonnet/opus→deepseek-v4-pro）。
+
+**为什么有 cc-switch**：Claude Code 默认连 Anthropic 官方 API（付费、国内直连难）；本机想用 DeepSeek（便宜、国内可通），两者接口格式不同需要翻译代理，cc-switch 就是这层代理 + 切换器。它不是硬依赖，可替换：
+
+| 方案 | 说明 |
+|------|------|
+| 官方 Claude | 去掉 `~/.claude/settings.json` 里的 `ANTHROPIC_BASE_URL` 等，登录 Anthropic 账号即可，无需 cc-switch（需订阅） |
+| 其它代理 | 用 `claude-code-router` / `one-api` / `new-api` 等替代 cc-switch 的代理角色 |
+| Anthropic 兼容网关 | 直接把 `ANTHROPIC_BASE_URL` 指向支持 Anthropic 接口的服务商 |
+
+> 运行桥需要 cc-switch 的本地代理（15721）在线；桥靠 `start_bridge.vbs` 自启、cc-switch 也开机自启，两者都在则整条链就绪。
+
 ## 樱花内网穿透（Sakura Frp，手机外网访问）
 
 1. 注册 [Sakura Frp](https://www.natfrp.com/)，创建隧道：类型 **HTTP/HTTPS**，本地 `127.0.0.1:8787`。
