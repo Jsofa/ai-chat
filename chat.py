@@ -21,8 +21,10 @@ import sys
 import urllib.error
 import urllib.request
 
+import runtime_paths
+
 HERE = os.path.dirname(os.path.abspath(__file__))
-CONFIG_PATH = os.path.join(HERE, "config.json")
+CONFIG_PATH = runtime_paths.config_path()
 
 # 常用服务商预设（均为 OpenAI 兼容的 /chat/completions 接口）
 PROVIDERS = {

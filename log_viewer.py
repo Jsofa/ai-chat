@@ -13,6 +13,8 @@ import os
 import sys
 import urllib.request
 
+import runtime_paths
+
 from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import (QApplication, QHBoxLayout, QLabel, QPushButton,
@@ -20,7 +22,7 @@ from PyQt5.QtWidgets import (QApplication, QHBoxLayout, QLabel, QPushButton,
 
 def _load_token():
     """从 config.json 读桥口令，读不到回退环境变量 BRIDGE_TOKEN。"""
-    _cfg_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+    _cfg_path = runtime_paths.config_path()
     try:
         with open(_cfg_path, "r", encoding="utf-8") as f:
             _cfg = json.load(f)
@@ -32,7 +34,7 @@ def _load_token():
 
 BASE = "http://127.0.0.1:8787"
 TOKEN = _load_token()
-XLSX = r"E:\rk3588\code\ai-chat\chat_log.xlsx"
+XLSX = os.path.join(runtime_paths.runtime_dir(), "chat_log.xlsx")
 
 
 def fetch_history():

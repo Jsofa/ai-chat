@@ -23,8 +23,10 @@ from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from xml.sax.saxutils import escape
 
+import runtime_paths
+
 try:
-    _log_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bridge.log")
+    _log_path = os.path.join(runtime_paths.runtime_dir(), "bridge.log")
     sys.stdout = open(_log_path, "a", encoding="utf-8", buffering=1)
     sys.stderr = sys.stdout
 except OSError:
@@ -37,7 +39,7 @@ WORKDIR = r"E:\rk3588\code"
 MODEL = "haiku"  # haiku→flash(deepseek-v4-flash)；空串/默认→pro(deepseek-v4-pro)
 def _load_token():
     """从 config.json 读桥访问口令，读不到再回退环境变量 BRIDGE_TOKEN。"""
-    _cfg_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+    _cfg_path = runtime_paths.config_path()
     try:
         with open(_cfg_path, "r", encoding="utf-8") as f:
             _cfg = json.load(f)
@@ -50,9 +52,10 @@ def _load_token():
 TOKEN = _load_token()
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
-IMAGES_DIR = os.path.join(_HERE, "images")
-XLSX_PATH = os.path.join(_HERE, "chat_log.xlsx")
-JSONL_PATH = os.path.join(_HERE, "chat_log.jsonl")
+_RUNTIME = runtime_paths.runtime_dir()
+IMAGES_DIR = os.path.join(_RUNTIME, "images")
+XLSX_PATH = os.path.join(_RUNTIME, "chat_log.xlsx")
+JSONL_PATH = os.path.join(_RUNTIME, "chat_log.jsonl")
 GUIDE_PATH = os.path.join(_HERE, "guide.html")
 EMEI_PATH = os.path.join(_HERE, "emei.html")
 os.makedirs(IMAGES_DIR, exist_ok=True)

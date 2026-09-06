@@ -10,10 +10,12 @@ import os
 import sys
 import urllib.request
 
+import runtime_paths
+
 
 def _load_token():
     """从 config.json 读桥口令，读不到回退环境变量 BRIDGE_TOKEN。"""
-    _cfg_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+    _cfg_path = runtime_paths.config_path()
     try:
         with open(_cfg_path, "r", encoding="utf-8") as f:
             _cfg = json.load(f)

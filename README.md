@@ -14,14 +14,17 @@
 
 ```bash
 cd ai-chat
-cp config.example.json config.json
-# 编辑 config.json，填入 api_key（见下）
+# 运行时数据（含密钥的 config.json / 日志 / 聊天记录 / 图片）放独立目录，与源码分离：
+#   Windows: E:\rk3588\ai-chat-runtime\     Linux: ~/.ai-chat-runtime\
+# 可用环境变量 AI_CHAT_RUNTIME 覆盖该目录。
+cp config.example.json E:\rk3588\ai-chat-runtime\config.json
+# 编辑该 config.json，填入 api_key（见下）
 python3 chat.py
 ```
 
 ## API 配置方法
 
-`config.json` 是唯一的配置文件（**含密钥，已被 .gitignore 忽略，不入库**）：
+`config.json` 是唯一的配置文件（**含密钥，放在独立运行时目录，不在源码目录、也不入库**）：
 
 ```json
 {
@@ -109,8 +112,19 @@ pythonw.exe claude_bridge.py
 
 > 旧花生壳方案 `http://myopenaicode.top` 会断开，已弃用。
 
+## 运行时目录（源码与本地数据分离）
+
+运行时产生的数据全部写到独立目录（`runtime_paths.py` 里解析），**与 git 源码目录物理分离**：
+
+| 目录 | 位置 | 内容 |
+|------|------|------|
+| 源码（GitHub 管理） | `ai-chat/` | 只含代码、README、config.example.json |
+| 运行时数据（本地） | Windows `E:\rk3588\ai-chat-runtime\` / Linux `~/.ai-chat-runtime/` | config.json、bridge.log、chat_log.*、images/ |
+
+- 用环境变量 `AI_CHAT_RUNTIME` 可自定义运行时目录。
+
 ## 安全说明
 
-- `config.json`（api_key + bridge_token）**已被 .gitignore 忽略，不会提交**。
-- 源码里**不含任何明文密钥**，全部从 `config.json` 读取。
-- 提交前请用 `git grep -n "sk-\|bridge_token 值" HEAD` 自查。
+- `config.json`（api_key + bridge_token）**放在独立运行时目录，不进源码目录、不提交**。
+- 源码里**不含任何明文密钥**，全部从运行时目录的 `config.json` 读取。
+- 提交前请用 `git grep -n "sk-" HEAD` 自查。
