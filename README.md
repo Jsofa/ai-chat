@@ -134,7 +134,7 @@ pythonw claude_bridge.py    # 桥（Windows 后台，日志写运行时目录 br
 
 1. 注册 [Sakura Frp](https://www.natfrp.com/)，创建隧道：类型 **HTTP/HTTPS**，本地 `127.0.0.1:8787`。
 2. 海外节点强制 HTTPS：开 **「自动 HTTPS」**、关 **「访问认证」**（桥已有 bridge_token，别开双层）。
-3. 启动 frpc 拿到公网地址（如 `https://frp-sea.com:34605`）。
+3. 启动 frpc 拿到公网地址（形如 `https://你的节点.frp.com:端口`）。
 4. 手机打开该地址，自签证书首次点「高级 → 继续前往」。
 
 ## 安全说明

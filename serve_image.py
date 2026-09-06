@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""极简图片服务：把 heart.png 通过网页发给手机。运行后手机访问 http://192.168.1.2:8899/"""
+"""极简图片服务：把 heart.png 通过网页发给手机。运行后手机访问 http://<本机IP>:8899/"""
 import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 

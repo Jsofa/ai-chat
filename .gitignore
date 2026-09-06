@@ -18,3 +18,10 @@ images/
 # 从 PDF 提取的文本（攻略素材）
 fulltext.txt
 toc.txt
+
+# 本机专属 / 个人内容（不入库、不公开）
+start_bridge.vbs
+disable_sac.bat
+disable_sac.ps1
+guide.html
+emei.html

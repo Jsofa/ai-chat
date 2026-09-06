@@ -35,7 +35,7 @@ except OSError:
 
 HOST = "0.0.0.0"
 PORT = 8787
-WORKDIR = r"E:\rk3588\code"
+WORKDIR = os.environ.get("CLAUDE_WORKDIR") or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODEL = "haiku"  # haiku→flash(deepseek-v4-flash)；空串/默认→pro(deepseek-v4-pro)
 def _load_token():
     """从 config.json 读桥访问口令，读不到再回退环境变量 BRIDGE_TOKEN。"""
