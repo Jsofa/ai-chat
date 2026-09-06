@@ -1,0 +1,20 @@
+# 密钥/本地配置（含 api_key、bridge_token）
+config.json
+
+# 日志
+*.log
+
+# 聊天记录（隐私）
+chat_log.jsonl
+chat_log.xlsx
+
+# 运行生成
+__pycache__/
+*.pyc
+
+# 聊天图片（隐私）
+images/
+
+# 从 PDF 提取的文本（攻略素材）
+fulltext.txt
+toc.txt
